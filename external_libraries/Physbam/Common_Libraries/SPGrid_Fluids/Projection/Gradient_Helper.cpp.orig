@@ -1,0 +1,170 @@
+//#####################################################################
+// Copyright 2013, Sean Bauer, Eftychios Sifakis.
+// This file is part of PhysBAM whose distribution is governed by the license contained in the accompanying file PHYSBAM_COPYRIGHT.txt.
+//#####################################################################
+#include "Gradient_Helper.h"
+#include "Laplace_Helper.h"
+#include "Kernel_Definitions.h"
+
+using namespace SPGrid;
+
+template<class T,int log2_struct,int d>
+struct Gradient_Thread_Helper:public PTHREAD_QUEUE::TASK
+{
+    Gradient_Helper<T,log2_struct,d>* const obj;
+    const int index_start,index_end;
+    Gradient_Thread_Helper(Gradient_Helper<T,log2_struct,d>* const obj_input,const int index_start_input,const int index_end_input)
+        :obj(obj_input),index_start(index_start_input),index_end(index_end_input) {}
+    void Run(){obj->Run_Index_Range(index_start,index_end);}
+};
+
+//#####################################################################
+// Function Run_Parallel
+//#####################################################################
+template<class T, int log2_struct> void Gradient_Helper<T,log2_struct,2>::Run_Parallel(const int number_of_partitions)
+{
+    for(int partition=0;partition<number_of_partitions;partition++){
+        // Calculate indicies of current partition
+        int first_index_of_partition=(size/number_of_partitions)*(partition)+std::min(size%number_of_partitions,partition);
+        int last_index_of_partition=(size/number_of_partitions)*(partition+1)+std::min(size%number_of_partitions,partition+1)-1;
+        // Create helper object
+        Gradient_Thread_Helper<T,log2_struct,d>* task=new Gradient_Thread_Helper<T,log2_struct,d>(this,first_index_of_partition,last_index_of_partition);
+        // Enqueue
+        pthread_queue->Queue(task);
+    }
+    // Wait for all tasks to complete
+    pthread_queue->Wait();
+}
+
+//#####################################################################
+// Function Run_Index_Range
+//#####################################################################
+// T_MASK corresponds to the mask for the data (not the mask channel)
+template <class T, int log2_struct> void Gradient_Helper<T,log2_struct,2>::Run_Index_Range(const int index_start,const int index_end)
+{  
+    const T scale_uniform=1.f/h;
+    const T scale_nonuniform=(2.f/3.f)/h;
+    // Compute shadow grid of linear offsets
+    unsigned long* offset_grid_ptr = (unsigned long*)malloc( (og_xsize) * (og_ysize) * sizeof(unsigned long));
+    typedef unsigned long (&offset_grid_type)[og_xsize][og_ysize];
+    offset_grid_type o_grid = reinterpret_cast<offset_grid_type>(*offset_grid_ptr);
+    
+    // Iterating through all block indices
+    for(int index=index_start;index<=index_end;index++) {
+      T* x_face_output = reinterpret_cast<T*>((unsigned long)x_faces + b[index]);
+      T* y_face_output = reinterpret_cast<T*>((unsigned long)y_faces + b[index]);
+      T* cell_data_in  = reinterpret_cast<T*>((unsigned long)cell_data + b[index]);
+
+      unsigned* mask_in  = reinterpret_cast<unsigned*>((unsigned long)mask + b[index]);
+      unsigned long packed_offset = b[index];
+      unsigned long cell_base_addr = reinterpret_cast<unsigned long>(cell_data);
+
+      Laplace_Helper<T,log2_struct,d>::ComputeShadowGrid(offset_grid_ptr, mask_in, packed_offset);
+
+      int cur_index = 0;
+      // Actually process elements
+      for(int i=xmin;i<=xmax;i++)
+      for(int j=ymin;j<=ymax;j++)
+      {
+        unsigned mask_value = mask_in[cur_index];
+
+        if ( mask_value & (SPGrid_Cell_Type_Interior|SPGrid_Cell_Type_Ghost)) {
+            if (mask_value & SPGrid_Face_Minus_X_Scaled)
+                x_face_output[cur_index] = scale_nonuniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i-1][j]));
+            else if (mask_value & SPGrid_Face_Minus_X_Active)
+                x_face_output[cur_index] = scale_uniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i-1][j]));
+            
+            if (mask_value & SPGrid_Face_Minus_Y_Scaled)
+                y_face_output[cur_index] = scale_nonuniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j-1]));
+            else if (mask_value & SPGrid_Face_Minus_Y_Active)
+                y_face_output[cur_index] = scale_uniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j-1]));
+        }
+        cur_index++;
+      }
+    }
+    free(offset_grid_ptr);
+}
+
+//#####################################################################
+// Function Run_Parallel
+//#####################################################################
+template<class T, int log2_struct> void Gradient_Helper<T,log2_struct,3>::Run_Parallel(const int number_of_partitions)
+{
+    for(int partition=0;partition<number_of_partitions;partition++){
+        // Calculate indicies of current partition
+        int first_index_of_partition=(size/number_of_partitions)*(partition)+std::min(size%number_of_partitions,partition);
+        int last_index_of_partition=(size/number_of_partitions)*(partition+1)+std::min(size%number_of_partitions,partition+1)-1;
+        // Create helper object
+        Gradient_Thread_Helper<T,log2_struct,d>* task=new Gradient_Thread_Helper<T,log2_struct,d>(this,first_index_of_partition,last_index_of_partition);
+        // Enqueue
+        pthread_queue->Queue(task);
+    }
+    // Wait for all tasks to complete
+    pthread_queue->Wait();
+}
+
+//#####################################################################
+// Function Run_Index_Range
+//#####################################################################
+// T_MASK corresponds to the mask for the data (not the mask channel)
+template <class T, int log2_struct> void Gradient_Helper<T,log2_struct,3>::Run_Index_Range(const int index_start,const int index_end)
+{  
+    const T scale_uniform=1.f/h;
+    const T scale_nonuniform=(2.f/3.f)/h;
+
+    // Compute shadow grid of linear offsets
+    unsigned long* offset_grid_ptr = (unsigned long*)malloc( (og_xsize) * (og_ysize) * (og_zsize) * sizeof(unsigned long));
+    typedef unsigned long (&offset_grid_type)[og_xsize][og_ysize][og_zsize];
+    offset_grid_type o_grid = reinterpret_cast<offset_grid_type>(*offset_grid_ptr);
+    
+    // Iterating through all block indices
+    for(int index=index_start;index<=index_end;index++) {
+      T* x_face_output = reinterpret_cast<T*>((unsigned long)x_faces + b[index]);
+      T* y_face_output = reinterpret_cast<T*>((unsigned long)y_faces + b[index]);
+      T* z_face_output = reinterpret_cast<T*>((unsigned long)z_faces + b[index]);
+      T* cell_data_in  = reinterpret_cast<T*>((unsigned long)cell_data + b[index]);
+
+      unsigned* mask_in  = reinterpret_cast<unsigned*>((unsigned long)mask + b[index]);
+      unsigned long packed_offset = b[index];
+      unsigned long cell_base_addr = reinterpret_cast<unsigned long>(cell_data);
+
+      Laplace_Helper<T,log2_struct,d>::ComputeShadowGrid(offset_grid_ptr, mask_in, packed_offset);
+
+      int cur_index = 0;
+      // Actually process elements
+      for(int i=xmin;i<=xmax;i++)
+      for(int j=ymin;j<=ymax;j++)
+      for(int k=zmin;k<=zmax;k++)
+      {
+        unsigned mask_value = mask_in[cur_index];
+
+        if ( mask_value & (SPGrid_Cell_Type_Interior|SPGrid_Cell_Type_Ghost)) {
+            
+            if (mask_value & SPGrid_Face_Minus_X_Scaled)
+                x_face_output[cur_index] = scale_nonuniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i-1][j][k]));
+            else if (mask_value & SPGrid_Face_Minus_X_Active)
+                x_face_output[cur_index] = scale_uniform    * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i-1][j][k]));
+            
+            if (mask_value & SPGrid_Face_Minus_Y_Scaled)
+                y_face_output[cur_index] = scale_nonuniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j-1][k]));
+            else if (mask_value & SPGrid_Face_Minus_Y_Active)
+                y_face_output[cur_index] = scale_uniform    * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j-1][k]));
+            
+            if (mask_value & SPGrid_Face_Minus_Z_Scaled)
+                z_face_output[cur_index] = scale_nonuniform * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j][k-1]));
+            else if (mask_value & SPGrid_Face_Minus_Z_Active)
+                z_face_output[cur_index] = scale_uniform    * (cell_data_in[cur_index] - *reinterpret_cast<T*>(cell_base_addr + o_grid[i][j][k-1]));
+
+        }
+        cur_index++;
+      }
+    }
+    free(offset_grid_ptr);
+}
+
+template class Gradient_Helper<float,5,2>;
+template class Gradient_Helper<float,6,2>;
+
+template class Gradient_Helper<float,5,3>;
+template class Gradient_Helper<float,6,3>;
+//template class Gradient_Helper<float,5,2>;

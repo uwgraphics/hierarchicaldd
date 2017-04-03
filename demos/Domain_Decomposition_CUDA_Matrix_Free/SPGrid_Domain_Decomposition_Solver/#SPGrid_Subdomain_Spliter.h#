@@ -1,0 +1,12 @@
+//#####################################################################
+//Removed For Anonymity: Copyright Authors of Submission pap173s1
+//Removed For Anonymity: Copyright Authors of Submission pap173s1
+//#####################################################################
+// Class SPGrid_Subdomain_Spliter
+//#####################################################################
+#ifndef __SPGRID_DOMAIN_DECOMPOSITION_SOLVER_H__
+#define __SPGRID_DOMAIN_DECOMPOSITION_SOLVER_H__
+
+#include <SPGrid/Core/SPGrid_Allocator.h>
+#include <SPGrid/Core/SPGrid_Set.h>
+

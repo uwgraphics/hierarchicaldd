@@ -1,0 +1,35 @@
+all: Clear_Helper_CUDA.o Laplace_Helper_CUDA.o Residual_Helper_CUDA.o Correction_Helper_CUDA.o Restriction_Helper_CUDA.o Prolongation_Helper_CUDA.o Interface_Block_Helper_CUDA.o Minus_Laplace_Helper_CUDA.o Norm_Helper_CUDA.o Smoother_Helper_CUDA.o Smoother_In_Cache_Helper_CUDA.o
+	/s/cuda-7.0.28/bin/nvcc -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xcompiler "-fPIC" Laplace_Helper_CUDA.o Clear_Helper_CUDA.o Restriction_Helper_CUDA.o Prolongation_Helper_CUDA.o Correction_Helper_CUDA.o Residual_Helper_CUDA.o Interface_Block_Helper_CUDA.o Minus_Laplace_Helper_CUDA.o Norm_Helper_CUDA.o Smoother_Helper_CUDA.o Smoother_In_Cache_Helper_CUDA.o -o libCUDA_Kernels.so -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Laplace_Helper_CUDA.o: Laplace_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared --std=c++11 -arch=compute_52 -code=compute_52 -Xptxas="-v" -Xcompiler "-fPIC" Laplace_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Clear_Helper_CUDA.o: Clear_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Clear_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Correction_Helper_CUDA.o: Correction_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Correction_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Residual_Helper_CUDA.o: Residual_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11  -Xptxas="-v" -Xcompiler "-fPIC" Residual_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Smoother_Helper_CUDA.o: Smoother_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11  -Xptxas="-v" -Xcompiler "-fPIC" Smoother_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Smoother_In_Cache_Helper_CUDA.o: Smoother_In_Cache_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11  -Xptxas="-v" -Xcompiler "-fPIC" Smoother_In_Cache_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Restriction_Helper_CUDA.o: Restriction_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Restriction_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Prolongation_Helper_CUDA.o: Prolongation_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Prolongation_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Interface_Block_Helper_CUDA.o: Interface_Block_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Interface_Block_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Minus_Laplace_Helper_CUDA.o: Minus_Laplace_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xptxas="-v" -Xcompiler "-fPIC" Minus_Laplace_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
+
+Norm_Helper_CUDA.o: Norm_Helper_CUDA.cu 
+	/s/cuda-7.0.28/bin/nvcc -c -ccbin=g++ --shared -arch=compute_52 -code=compute_52 --std=c++11 -Xptxas="-v" -Xcompiler "-fPIC" Norm_Helper_CUDA.cu -I../../../Common_Libraries --ptxas-options=-allow-expensive-optimizations=true,-O3
