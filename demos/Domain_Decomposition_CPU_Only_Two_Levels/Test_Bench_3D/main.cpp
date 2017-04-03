@@ -314,7 +314,7 @@ int main(int argc,char *argv[])
         LOG::cout<<"Finished Reading SPGrid"<<std::endl;
         T norm_rhs=Norm_Helper<T_STRUCT_4,T,d>::L1_Norm(*(solver.spgrid_gemini.allocator_second),(*(solver.spgrid_gemini.set)).Get_Blocks(),&T_STRUCT_4::ch1);
         LOG::cout<<"Norm of the RHS: "<<norm_rhs<<std::endl;
-        solver.Initialize_Preconditioner(v_cycle_levels,size.Cast<T_INDEX>(),subdomain_size,sigma_levels,nVcycles,interior_smoothing,boundary_smoothing,sigma_smoothing,n_sigma_mg);
+        solver.Initialize_Preconditioner(v_cycle_levels,size.Cast<T_INDEX>(),subdomain_size,sigma_levels,nVcycles,interior_smoothing,boundary_smoothing,sigma_smoothing,n_sigma_mg,multilevel);
         solver.Solve();
     }else{
         if(mode=="velocity"){
@@ -342,7 +342,7 @@ int main(int argc,char *argv[])
     
         delete SPGrid_hierarchy;
         
-        solver.Initialize_Preconditioner(v_cycle_levels,size.Cast<T_INDEX>(),subdomain_size,sigma_levels,nVcycles,interior_smoothing,boundary_smoothing,sigma_smoothing,n_sigma_mg);
+        solver.Initialize_Preconditioner(v_cycle_levels,size.Cast<T_INDEX>(),subdomain_size,sigma_levels,nVcycles,interior_smoothing,boundary_smoothing,sigma_smoothing,n_sigma_mg,multilevel);
         solver.Solve();
     }
     LOG::Finish_Logging();
